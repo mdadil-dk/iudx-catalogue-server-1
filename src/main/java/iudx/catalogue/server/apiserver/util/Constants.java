@@ -37,9 +37,8 @@ public class Constants {
 
   public static final String ROUTE_UPDATE_ITEMS =
       basePath.concat("/item/:resItem/:resGrpItem/:resSvrItem/:pvdrItem/:dataDesItem");
-  public static final String ROUTE_DELETE_ITEMS =
-      basePath.concat("/item/:" + PROVIDER_ORG + "/:" + PROVIDER_ITEM 
-          + "/:" + RESOURCE_SVR_ITEM + "/:" + RESOURCE_GRP_ITEM + "/:" + RESOURCE_ITEM);
+  public static final String ROUTE_DELETE_ITEMS = basePath.concat("/item/:" + PROVIDER_ORG + "/:"
+      + PROVIDER_ITEM + "/:" + RESOURCE_SVR_ITEM + "/:" + RESOURCE_GRP_ITEM + "/:" + RESOURCE_ITEM);
   public static final String ROUTE_LIST_ITEMS =
       basePath.concat("/items/:resItem/:resGrpItem/:resSvrItem/:pvdrItem/:dataDesItem");
   public static final String ROUTE_LIST_RESOURCE_REL = basePath.concat("\\/(?<id>.*)\\/resource");
@@ -129,4 +128,6 @@ public class Constants {
   public static final String POST = "POST";
   public static final String PUT = "PUT";
   public static final String DELETE = "DELETE";
+
+  public static final String ROUTE_REL_SEARCH = "relSearch";
 }

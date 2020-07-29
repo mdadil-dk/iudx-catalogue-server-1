@@ -205,6 +205,8 @@ public class ApiServerVerticle extends AbstractVerticle {
         /* Count the Cataloque server items */
         router.get(Constants.ROUTE_COUNT).handler(this::count);
 
+        router.get(Constants.ROUTE_REL_SEARCH).handler(this::relSearch);
+
         /* Populating itemTypes */
         itemTypes = new HashSet<String>();
         itemTypes.add(Constants.ITEM_TYPE_RESOURCE);
@@ -1603,6 +1605,46 @@ public class ApiServerVerticle extends AbstractVerticle {
       logger.error("Invalid request query parameters");
       response.putHeader(Constants.HEADER_CONTENT_TYPE, Constants.MIME_APPLICATION_JSON)
           .setStatusCode(400).end(new ResponseHandler.Builder().withStatus(Constants.INVALID_VALUE)
+              .build().toJsonString());
+    }
+  }
+
+
+  /**
+   * Counting the cataloque items.
+   *
+   * @param routingContext Handles web request in Vert.x web
+   */
+  public void relSearch(RoutingContext routingContext) {
+
+    logger.info("Relationship search");
+
+    /* Handles HTTP request from client */
+    HttpServerRequest request = routingContext.request();
+
+    /* Handles HTTP response from server to client */
+    HttpServerResponse response = routingContext.response();
+
+    JsonObject requestBody = new JsonObject();
+
+    /* HTTP request instance/host details */
+    String instanceID = request.getHeader(Constants.HEADER_HOST);
+
+    /* Collection of query parameters from HTTP request */
+    MultiMap queryParameters = routingContext.queryParams();
+
+    /* validating proper actual query parameters from request */
+    if (request.getParam(Constants.RELATIONSHIP) != null
+        && request.getParam(Constants.VALUE) != null) {
+
+      /* converting query parameters in json */
+      requestBody = QueryMapper.map2Json(queryParameters);
+      System.out.println(requestBody);
+
+    } else {
+      logger.error("Invalid request query parameters");
+      response.putHeader(Constants.HEADER_CONTENT_TYPE, Constants.MIME_APPLICATION_JSON)
+          .setStatusCode(400).end(new ResponseHandler.Builder().withStatus(Constants.INVALID_SYNTAX)
               .build().toJsonString());
     }
   }
