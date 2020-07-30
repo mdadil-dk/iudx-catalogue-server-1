@@ -1639,8 +1639,31 @@ public class ApiServerVerticle extends AbstractVerticle {
 
       /* converting query parameters in json */
       requestBody = QueryMapper.map2Json(queryParameters);
-      System.out.println(requestBody);
 
+      if (requestBody != null) {
+
+        /* Populating query mapper */
+        requestBody.put(Constants.INSTANCE_ID_KEY, instanceID);
+
+        /* Request database service with requestBody for listing domains */
+        database.relSearch(requestBody, dbhandler -> {
+          if (dbhandler.succeeded()) {
+            logger.info(
+                "Relationship search completed, response: ".concat(dbhandler.result().toString()));
+            response.putHeader(Constants.HEADER_CONTENT_TYPE, Constants.MIME_APPLICATION_JSON)
+                .setStatusCode(200).end(dbhandler.result().toString());
+          } else if (dbhandler.failed()) {
+            logger.error("Issue in relationship search ".concat(dbhandler.cause().toString()));
+            response.putHeader(Constants.HEADER_CONTENT_TYPE, Constants.MIME_APPLICATION_JSON)
+                .setStatusCode(400).end(dbhandler.cause().toString());
+          }
+        });
+      } else {
+        logger.error("Invalid request query parameters");
+        response.putHeader(Constants.HEADER_CONTENT_TYPE, Constants.MIME_APPLICATION_JSON)
+            .setStatusCode(400).end(new ResponseHandler.Builder()
+                .withStatus(Constants.INVALID_VALUE).build().toJsonString());
+      }
     } else {
       logger.error("Invalid request query parameters");
       response.putHeader(Constants.HEADER_CONTENT_TYPE, Constants.MIME_APPLICATION_JSON)

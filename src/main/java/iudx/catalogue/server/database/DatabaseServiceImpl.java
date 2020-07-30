@@ -1333,6 +1333,117 @@ public class DatabaseServiceImpl implements DatabaseService {
   }
 
   /**
+   * {@inheritDoc}
+   */
+  @Override
+  public DatabaseService relSearch(JsonObject request, Handler<AsyncResult<JsonObject>> handler) {
+
+    /* <resourceId or resourceGroupId>/resourceServer */
+    /* Initialize elastic clients and JsonObjects */
+    Request elasticRequest;
+    JsonObject errorJson = new JsonObject();
+
+    JsonObject elasticQuery = new JsonObject();
+    JsonObject boolObject = new JsonObject();
+
+    /* Construct an elastic client request with index to query */
+    elasticRequest =
+        new Request(Constants.REQUEST_GET, Constants.REL_API_SEARCH_INDEX + Constants.FILTER_PATH);
+
+    /* Validating the request */
+    if (request.containsKey(Constants.ID)
+        && request.getString(Constants.RELATIONSHIP).equals(Constants.TYPE_KEY)) {
+
+      /* parsing id from the request */
+      String itemId = request.getString(Constants.ID);
+
+      boolObject.put(Constants.BOOL_KEY,
+          new JsonObject().put(Constants.MUST_KEY, new JsonArray().add(new JsonObject()
+              .put(Constants.TERM, new JsonObject().put(Constants.ID_KEYWORD, itemId)))));
+
+      elasticQuery.put(Constants.QUERY_KEY, boolObject).put(Constants.SOURCE,
+          request.getString(Constants.RELATIONSHIP));
+
+      logger.info("Query constructed: " + elasticQuery.toString());
+
+      /* Set the elastic client with the query to perform */
+      elasticRequest.setJsonEntity(elasticQuery.toString());
+
+      /* Execute the query */
+      client.performRequestAsync(elasticRequest, new ResponseListener() {
+        @Override
+        public void onSuccess(Response response) {
+
+          logger.info("Successful DB request");
+          JsonArray dbResponse = new JsonArray();
+          JsonObject dbResponseJson = new JsonObject();
+
+          try {
+            int statusCode = response.getStatusLine().getStatusCode();
+            /* Validate the response */
+            if (statusCode != 200 && statusCode != 204) {
+              handler.handle(Future.failedFuture("Status code is not 2xx"));
+              return;
+            }
+
+            JsonObject responseJson = new JsonObject(EntityUtils.toString(response.getEntity()));
+
+            if (responseJson.getJsonObject(Constants.HITS).getJsonObject(Constants.TOTAL)
+                .getInteger(Constants.VALUE) == 0) {
+
+              /* Constructing error response */
+              errorJson.put(Constants.STATUS, Constants.FAILED).put(Constants.DESCRIPTION,
+                  Constants.EMPTY_RESPONSE);
+
+              handler.handle(Future.failedFuture(errorJson.toString()));
+              return;
+            }
+
+            JsonArray responseHits =
+                responseJson.getJsonObject(Constants.HITS).getJsonArray(Constants.HITS);
+
+            /* Construct the client response, remove the _source field */
+            for (Object json : responseHits) {
+              JsonObject jsonTemp = (JsonObject) json;
+              dbResponse.add(jsonTemp.getJsonObject(Constants.SOURCE));
+            }
+
+            dbResponseJson.put(Constants.STATUS, Constants.SUCCESS)
+                .put(Constants.TOTAL_HITS, responseJson.getJsonObject(Constants.HITS)
+                    .getJsonObject(Constants.TOTAL).getInteger(Constants.VALUE))
+                .put(Constants.RESULT, dbResponse);
+            /* Send the response */
+            handler.handle(Future.succeededFuture(dbResponseJson));
+
+          } catch (IOException e) {
+
+            logger.info("DB ERROR: " + e.getMessage());
+
+            /* Constructing error response */
+            errorJson.put(Constants.STATUS, Constants.FAILED).put(Constants.DESCRIPTION,
+                Constants.DATABASE_ERROR);
+
+            handler.handle(Future.failedFuture(errorJson.toString()));
+          }
+        }
+
+        @Override
+        public void onFailure(Exception e) {
+
+          logger.info("DB request has failed. ERROR: " + e.getMessage());
+
+          /* Constructing error response */
+          errorJson.put(Constants.STATUS, Constants.FAILED).put(Constants.DESCRIPTION,
+              Constants.DATABASE_ERROR);
+
+          handler.handle(Future.failedFuture(errorJson.toString()));
+        }
+      });
+    }
+    return this;
+  }
+
+  /**
    * Decodes and constructs ElasticSearch Search/Count query based on the parameters passed in the
    * request.
    *

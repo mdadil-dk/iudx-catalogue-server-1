@@ -310,6 +310,17 @@ public interface DatabaseService {
   DatabaseService appendConfig(JsonObject request, Handler<AsyncResult<JsonObject>> handler);
 
   /**
+   * The relSearch implements the Relationship searches with the database.
+   * 
+   * @param request which is a JsonObject
+   * @param handler which is a Request Handler
+   * @return DatabaseService which is a Service
+   */
+
+  @Fluent
+  DatabaseService relSearch(JsonObject request, Handler<AsyncResult<JsonObject>> handler);
+
+  /**
    * The create implements the count operation with the database.
    * 
    * @param client RestClient to perform ES queries.
