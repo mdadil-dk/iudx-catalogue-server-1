@@ -1338,7 +1338,6 @@ public class DatabaseServiceImpl implements DatabaseService {
   @Override
   public DatabaseService relSearch(JsonObject request, Handler<AsyncResult<JsonObject>> handler) {
 
-    /* <resourceId or resourceGroupId>/resourceServer */
     /* Initialize elastic clients and JsonObjects */
     Request elasticRequest;
     JsonObject errorJson = new JsonObject();
@@ -1351,15 +1350,51 @@ public class DatabaseServiceImpl implements DatabaseService {
         new Request(Constants.REQUEST_GET, Constants.REL_API_SEARCH_INDEX + Constants.FILTER_PATH);
 
     /* Validating the request */
-    if (request.containsKey(Constants.ID)
-        && request.getString(Constants.RELATIONSHIP).equals(Constants.TYPE_KEY)) {
+    if (request.containsKey(Constants.RELATIONSHIP) && request.containsKey(Constants.VALUE)) {
 
-      /* parsing id from the request */
-      String itemId = request.getString(Constants.ID);
+      /* parsing data parameters from the request */
+      String relReq = request.getJsonArray(Constants.RELATIONSHIP).getString(0);
+      // String valueReq = request.getJsonArray(Constants.RELATIONSHIP).getString(0);
 
-      boolObject.put(Constants.BOOL_KEY,
-          new JsonObject().put(Constants.MUST_KEY, new JsonArray().add(new JsonObject()
-              .put(Constants.TERM, new JsonObject().put(Constants.ID_KEYWORD, itemId)))));
+      if (relReq.contains(".")) {
+
+        String[] relReqs = relReq.split(".");
+        String nameValue = null;
+
+        if (relReqs[0].equalsIgnoreCase(Constants.REL_PROVIDER)) {
+          nameValue = Constants.ITEM_TYPE_PROVIDER;
+
+        } else if (relReqs[0].equalsIgnoreCase(Constants.REL_RESOURCE)) {
+          nameValue = Constants.ITEM_TYPE_RESOURCE;
+
+        } else if (relReqs[0].equalsIgnoreCase(Constants.REL_RESOURCE_GRP)) {
+          nameValue = Constants.ITEM_TYPE_RESOURCE_GROUP;
+
+        } else if (relReqs[0].equalsIgnoreCase(Constants.REL_RESOURCE_SVR)) {
+          nameValue = Constants.ITEM_TYPE_RESOURCE_SERVER;
+
+        } else {
+          /* Constructing error response */
+          errorJson.put(Constants.STATUS, Constants.FAILED).put(Constants.DESCRIPTION,
+              Constants.ERROR_INVALID_PARAMETER);
+
+          handler.handle(Future.failedFuture(errorJson.toString()));
+          return null;
+        }
+
+        /* Constructing the db query */
+        boolObject
+            .put(Constants.BOOL_KEY,
+                new JsonObject()
+                    .put(Constants.MUST_KEY,
+                        new JsonArray()
+                            .add(new JsonObject().put(Constants.TERM,
+                                new JsonObject().put(
+                                    Constants.TYPE_KEY.concat(Constants.KEYWORD_KEY), nameValue)))
+                            .add(new JsonObject().put(Constants.MATCH_KEY,
+                                new JsonObject().put(Constants.NAME_KEY, relReqs[1])))));
+
+      }
 
       elasticQuery.put(Constants.QUERY_KEY, boolObject).put(Constants.SOURCE,
           request.getString(Constants.RELATIONSHIP));

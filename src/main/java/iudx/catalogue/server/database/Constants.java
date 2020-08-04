@@ -128,5 +128,6 @@ public class Constants {
   public static final String ITEM_TYPE_PROVIDER = "iudx:Provider";
   public static final String REL_TYPE = "type";
   public static final String IUDX_KEY = "iudx:";
+  public static final String NAME_KEY = "name";
 
 }
